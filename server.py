@@ -41,32 +41,44 @@ def weighted_average(metrics: List[Tuple[int, Dict]]) -> Dict:
     return aggregated
 
 def start_server():
-    # Get the correct input shape from data
-    df, num_cols, _, _ = preprocess_data()
-    input_shape = len(num_cols)
-    print(f"Server model input shape: {input_shape}")
-    
-    # Load the same hyperparameters used by clients
-    best_hps = load_hyperparameters()
-    print("Using hyperparameters:", best_hps)
-    
-    # Initialize model with correct input shape and hyperparameters
-    initial_model = create_model(input_shape=input_shape, best_hps=best_hps)
-    print("Server model summary:")
-    initial_model.summary()
-    
-    strategy = MetricAggregator(
-        evaluate_metrics_aggregation_fn=weighted_average,
-        fraction_fit=1.0,
-        fraction_evaluate=1.0,
-        initial_parameters=fl.common.ndarrays_to_parameters(initial_model.get_weights()),
-    )
-    
-    fl.server.start_server(
-        server_address="0.0.0.0:8080",
-        config=fl.server.ServerConfig(num_rounds=10),
-        strategy=strategy
-    )
+    try:
+        # Get the correct input shape from data
+        df, num_cols, _, _ = preprocess_data()
+        input_shape = len(num_cols)
+        print(f"Server model input shape: {input_shape}")
+        
+        # Load the same hyperparameters used by clients
+        best_hps = load_hyperparameters()
+        print("Using hyperparameters:", best_hps)
+        
+        # Initialize model with correct input shape and hyperparameters
+        initial_model = create_model(input_shape=input_shape, best_hps=best_hps)
+        print("Server model summary:")
+        initial_model.summary()
+        
+        strategy = MetricAggregator(
+            evaluate_metrics_aggregation_fn=weighted_average,
+            fraction_fit=1.0,
+            fraction_evaluate=1.0,
+            min_available_clients=1,  # Added
+            min_fit_clients=1,        # Added
+            initial_parameters=fl.common.ndarrays_to_parameters(initial_model.get_weights()),
+        )
+        
+        # Add server config
+        server_config = fl.server.ServerConfig(
+            num_rounds=10,
+            round_timeout=600.0  # 10 minutes timeout per round
+        )
+        
+        fl.server.start_server(
+            server_address="0.0.0.0:8080",
+            config=server_config,
+            strategy=strategy
+        )
+    except Exception as e:
+        print(f"Error starting server: {e}")
+        raise
 
 if __name__ == "__main__":
     start_server()

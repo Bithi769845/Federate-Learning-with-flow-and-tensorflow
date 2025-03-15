@@ -2,8 +2,22 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
+import pickle
 
 def preprocess_data():
+    # Attack labels mapping
+    attack_mapping = {
+        'DDoS ICMP Flood.csv': 'DoS',
+        'DDoS UDP Flood.csv': 'DoS',
+        'DoS ICMP Flood.csv': 'DoS',
+        'DoS UDP Flood.csv': 'DoS',
+        'MITM ARP Spoofing.csv': 'MITM',
+        'MQTT DoS Publish Flood.csv': 'MQTT',
+        'MQTT Malformed.csv': 'MQTT',
+        'Recon Ping Sweep.csv': 'Recon',
+        'Recon Vulnerability Scan.csv': 'Recon'
+    }
+
     attack_labels = {
         "Benign Traffic.csv": "normal",
         "DDoS ICMP Flood.csv": "DoS",
@@ -49,38 +63,59 @@ def preprocess_data():
     scaler = StandardScaler()
     df_combined[num_cols] = scaler.fit_transform(df_combined[num_cols])
 
-    return df_combined, num_cols.tolist(), {'normal': 0, 'attack': 1}, label_encoders
+    return df_combined, num_cols.tolist(), label_encoders, attack_mapping
 
-def create_non_iid_data(df, num_cols, label_mapping, validation_split=0.2):
+def create_non_iid_data(df, num_cols, attack_mapping, validation_split=0.2):
     client_data = {}
     distribution_info = {}
 
-    attack_types = df['type'].unique().tolist()
-    attack_types.remove('normal')
-
-    # Split normal data per client
+    # Separate normal and attack data
     normal_data = df[df['type'] == 'normal']
-    num_clients = len(attack_types)
+    attack_data = df[df['type'] != 'normal']
+
+    # Get unique attack categories
+    attack_categories = sorted(attack_data['type'].unique())
+    num_clients = len(attack_categories)
+
+    # Split normal data proportionally
     normal_splits = np.array_split(normal_data, num_clients)
 
-    for client_id, attack_type in enumerate(attack_types):
-        normal_split = normal_splits[client_id]
-        attack_data = df[df['type'] == attack_type]
+    # Add verification prints
+    print(f"\nCreating Non-IID data distribution:")
+    print(f"Found {num_clients} unique attack categories: {attack_categories}")
 
-        combined = pd.concat([normal_split, attack_data])
+    # Create client datasets (start from 0 instead of 1)
+    for client_id, (normal_split, attack_category) in enumerate(zip(normal_splits, attack_categories)):
+        attack_subset = attack_data[attack_data['type'] == attack_category]
+        combined = pd.concat([normal_split, attack_subset])
+        
         distribution_info[client_id] = {
-            'normal': len(normal_split),
-            attack_type: len(attack_data)
+            'normal_samples': len(normal_split),
+            'attack_samples': len(attack_subset),
+            'attack_category': attack_category
         }
+
+        # Add verification prints
+        print(f"\nClient {client_id}:")
+        print(f"- Attack category: {attack_category}")
+        print(f"- Normal samples: {len(normal_split)}")
+        print(f"- Attack samples: {len(attack_subset)}")
+        print(f"- Total samples: {len(combined)}")
 
         X = combined[num_cols].values
         y = combined['label'].values
-        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=validation_split, random_state=42)
+        X_train, X_val, y_train, y_val = train_test_split(
+            X, y, test_size=validation_split, stratify=y, random_state=42
+        )
         client_data[client_id] = (X_train, y_train, X_val, y_val)
+
+    # Save distribution info for visualization
+    with open("distribution_info.pkl", "wb") as f:
+        pickle.dump(distribution_info, f)
 
     return client_data, distribution_info
 
 if __name__ == "__main__":
-    df, num_cols, label_mapping, label_encoders = preprocess_data()
-    client_data, distribution = create_non_iid_data(df, num_cols, label_mapping)
+    df, num_cols, label_encoders, attack_mapping = preprocess_data()
+    client_data, distribution = create_non_iid_data(df, num_cols, attack_mapping)
     print("Data distribution per client:", distribution)

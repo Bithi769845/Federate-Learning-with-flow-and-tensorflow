@@ -73,8 +73,8 @@ def tune_hyperparameters():
     tuner = RandomSearch(
         lambda hp: build_model(hp, input_shape),
         objective='val_accuracy',
-        max_trials=5,
-        executions_per_trial=2,
+        max_trials=10,  # Increased from 5
+        executions_per_trial=3,  # Increased from 2
         directory='tuning',
         project_name='fl_tuning'
     )
@@ -82,9 +82,11 @@ def tune_hyperparameters():
     print("Starting hyperparameter tuning...")
     tuner.search(
         X_train, y_train,
-        epochs=10,
+        epochs=15,  # Increased from 10
+        batch_size=32,  # Added batch_size
         validation_data=(X_val, y_val),
-        verbose=1
+        verbose=1,
+        callbacks=[tf.keras.callbacks.EarlyStopping(patience=3)]  # Added early stopping
     )
     
     best_hps = tuner.get_best_hyperparameters(1)[0]

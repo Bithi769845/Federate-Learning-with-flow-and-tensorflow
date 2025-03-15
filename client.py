@@ -59,36 +59,35 @@ class FLClient(fl.client.NumPyClient):
         return self.model.get_weights(), len(self.X_train), {}
 
     def evaluate(self, parameters, config):
-        self.model.set_weights(parameters)
-        loss, accuracy = self.model.evaluate(self.X_val, self.y_val, verbose=0)
-        
-        y_pred = self.model.predict(self.X_val, verbose=0)
-        y_pred_class = np.round(y_pred).flatten()
-        y_score = np.repeat(y_pred, len(self.classes), axis=1)  # Modified this line
-        
-        # Calculate metrics
-        metrics = {
-            "precision": precision_score(self.y_val, y_pred_class, average='binary'),
-            "recall": recall_score(self.y_val, y_pred_class, average='binary'),
-            "f1": f1_score(self.y_val, y_pred_class, average='binary'),
-            "auc_roc": roc_auc_score(self.y_val, y_pred.flatten()),
-            "accuracy": accuracy,
-            "loss": loss
-        }
-        
-        # Save client-specific metrics
-        self._save_metrics(metrics, y_pred_class, y_pred.flatten())
-        
-        # Convert history list to DataFrame before calling analyze_results
-        history_df = pd.DataFrame(self.history)
-        analyze_results(history_df, 
-                       self.y_val, 
-                       y_pred_class, 
-                       y_score, 
-                       self.classes,  # Pass the classes list
-                       self.client_id)
-        
-        return loss, len(self.X_val), metrics
+        try:
+            self.model.set_weights(parameters)
+            loss, accuracy = self.model.evaluate(self.X_val, self.y_val, verbose=0)
+            
+            y_pred = self.model.predict(self.X_val, verbose=0)
+            y_pred_class = np.round(y_pred).flatten()
+            y_score = y_pred.flatten()  # For binary classification
+            
+            # Calculate metrics
+            metrics = {
+                "precision": precision_score(self.y_val, y_pred_class, average='binary'),
+                "recall": recall_score(self.y_val, y_pred_class, average='binary'),
+                "f1": f1_score(self.y_val, y_pred_class, average='binary'),
+                "auc_roc": roc_auc_score(self.y_val, y_score),
+                "accuracy": accuracy,
+                "loss": loss
+            }
+            
+            # Save client-specific metrics
+            self._save_metrics(metrics, y_pred_class, y_score)
+            
+            # Generate visualizations
+            history_df = pd.DataFrame(self.history)
+            analyze_results(history_df, self.y_val, y_pred_class, y_score, self.classes, self.client_id)
+            
+            return loss, len(self.X_val), metrics
+        except Exception as e:
+            print(f"Error in evaluate: {e}")
+            raise
 
     def _save_metrics(self, metrics, y_pred, y_score):
         """Save metrics to client-specific files"""
@@ -135,8 +134,8 @@ def main(client_id):
     print(f"Client {client_id} model input shape: {input_shape}")
     
     # Only perform tuning if hyperparameters don't exist
-    if not os.path.exists('best_hyperparameters.json'):
-        print(f"\nTuning hyperparameters for client {client_id}...")
+    if client_id == 0 and not os.path.exists('best_hyperparameters.json'):
+        print(f"\nTuning hyperparameters (Client {client_id} is primary)...")
         best_hps = tune_hyperparameters()
     else:
         print(f"\nClient {client_id} loading existing hyperparameters...")
@@ -147,6 +146,25 @@ def main(client_id):
     
     print(f"\nClient {client_id} model architecture:")
     model.summary()
+    
+    # Save initial client info
+    client_info = {
+        'client_id': client_id,
+        'input_shape': input_shape,
+        'attack_category': distribution[client_id]['attack_category'],
+        'total_samples': len(X_train) + len(X_val)
+    }
+    
+    pd.DataFrame([client_info]).to_csv(
+        f'client_info_{client_id}.csv',
+        index=False
+    )
+    
+    # Start client with more verbose output
+    print(f"\nStarting Federated Learning for Client {client_id}")
+    print(f"Attack Category: {distribution[client_id]['attack_category']}")
+    print(f"Training samples: {len(X_train)}")
+    print(f"Validation samples: {len(X_val)}")
     
     # Start client
     print(f"\nStarting Federated Learning for Client {client_id}")
