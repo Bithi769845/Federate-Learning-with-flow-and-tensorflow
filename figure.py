@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.metrics import confusion_matrix, roc_curve, auc, accuracy_score, precision_score, recall_score, f1_score
 from typing import Dict, List
 import os
 from data_preprocessing import create_non_iid_data, preprocess_data
@@ -13,17 +13,8 @@ def ensure_directory(directory="figures"):
         os.makedirs(directory)
 
 def plot_distribution():
-    df, num_cols, label_mapping, label_encoders = preprocess_data()
-    _, distribution = create_non_iid_data(df, num_cols, label_mapping)
-    
-    labels = ['Normal', 'DDoS', 'MITM', 'MQTT', 'Recon']
-    client_data = [[dist.get(label.lower(), 0) for label in labels] for dist in distribution.values()]
-    
-    plt.figure(figsize=(8, 6))
-    plt.pie(client_data[0], labels=labels, autopct='%1.1f%%')
-    plt.title("Client Data Distribution")
-    plt.savefig("figures/client_data_distribution.png")
-    plt.close()
+    """Remove this function as it's redundant with plot_client_data_distribution"""
+    pass  # We'll use plot_client_data_distribution instead
 
 def plot_metrics(history: pd.DataFrame, client_id=None):
     ensure_directory()
@@ -56,7 +47,16 @@ def plot_confusion_matrix(y_true, y_pred, classes, filename):
     ensure_directory()
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
+    
+    # For binary classification, use 2x2 matrix
+    if len(classes) == 2:
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                   xticklabels=['Normal', 'Attack'],
+                   yticklabels=['Normal', 'Attack'])
+    else:
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                   xticklabels=classes, yticklabels=classes)
+    
     plt.title('Confusion Matrix')
     plt.xlabel('Predicted')
     plt.ylabel('True')
@@ -67,17 +67,10 @@ def plot_roc_curve(y_true, y_score, classes, filename):
     ensure_directory()
     plt.figure(figsize=(8, 6))
     
-    # Handle binary classification case
-    if y_score.shape[1] != len(classes):
-        fpr, tpr, _ = roc_curve(y_true, y_score[:, 0])
-        auc_score = auc(fpr, tpr)
-        plt.plot(fpr, tpr, label=f'ROC curve (AUC = {auc_score:.2f})')
-    else:
-        # Multi-class case
-        for i, cls in enumerate(classes):
-            fpr, tpr, _ = roc_curve(y_true == i, y_score[:, i])
-            auc_score = auc(fpr, tpr)
-            plt.plot(fpr, tpr, label=f'{cls} (AUC = {auc_score:.2f})')
+    # Simplified for binary classification
+    fpr, tpr, _ = roc_curve(y_true, y_score)
+    auc_score = auc(fpr, tpr)
+    plt.plot(fpr, tpr, label=f'ROC curve (AUC = {auc_score:.2f})')
     
     plt.plot([0, 1], [0, 1], 'k--')
     plt.xlabel('False Positive Rate')
@@ -89,23 +82,96 @@ def plot_roc_curve(y_true, y_score, classes, filename):
     plt.close()
 
 def analyze_results(history: pd.DataFrame, y_true, y_pred, y_score, classes, client_id=None):
-    ensure_directory()
     try:
-        if client_id is None:
-            # Global federation results
-            print("Generating global metrics plots...")
-            plot_global_metrics(history)
-            plot_confusion_matrix(y_true, y_pred, ['Normal', 'Attack'], "confusion_global.png")
-            plot_roc_curve(y_true, y_score[:, 0] if y_score.ndim > 1 else y_score, ['Normal', 'Attack'], "roc_global.png")
-            plot_all_clients_distribution()
+        # Set base directory
+        if client_id is not None:
+            base_dir = f"figures/client_{client_id}"
         else:
-            # Client-specific metrics
-            print(f"Generating plots for Client {client_id}...")
-            plot_metrics(history, client_id)
-            plot_confusion_matrix(y_true, y_pred, ['Normal', 'Attack'], f"confusion_client_{client_id}.png")
-            plot_roc_curve(y_true, y_score[:, 0] if y_score.ndim > 1 else y_score, ['Normal', 'Attack'], f"roc_client_{client_id}.png")
+            base_dir = "figures/global"  # Changed from "figures" to "figures/global"
+        ensure_directory(base_dir)
+
+        # Print what we're analyzing
+        print(f"\nAnalyzing {'global' if client_id is None else f'client {client_id}'} results...")
+        
+        # Generate plots
+        # 1. Loss Plot
+        plt.figure(figsize=(10, 6))
+        plt.plot(history['loss'], label='Loss', marker='o', color='blue')
+        plt.title(f"{'Global' if client_id is None else f'Client {client_id}'} Loss vs Rounds")
+        plt.xlabel('Rounds')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{base_dir}/loss.png")
+        plt.close()
+
+        # 2. Accuracy Plot
+        plt.figure(figsize=(10, 6))
+        plt.plot(history['accuracy'], label='Accuracy', marker='o', color='green')
+        plt.title(f"{'Global' if client_id is None else f'Client {client_id}'} Accuracy vs Rounds")
+        plt.xlabel('Rounds')
+        plt.ylabel('Accuracy')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{base_dir}/accuracy.png")
+        plt.close()
+
+        # 3. Confusion Matrix with percentages
+        cm = confusion_matrix(y_true, y_pred)
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                   xticklabels=['Normal', 'Attack'],
+                   yticklabels=['Normal', 'Attack'])
+        plt.title(f"{'Global' if client_id is None else f'Client {client_id}'} Confusion Matrix")
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+        
+        # Add accuracy text
+        acc = accuracy_score(y_true, y_pred)
+        plt.text(0.5, -0.1, f'Accuracy: {acc:.2%}', 
+                horizontalalignment='center', transform=plt.gca().transAxes)
+        
+        plt.tight_layout()
+        plt.savefig(f"{base_dir}/confusion_matrix.png")
+        plt.close()
+
+        # 4. ROC Curve
+        fpr, tpr, _ = roc_curve(y_true, y_score)
+        roc_auc = auc(fpr, tpr)
+        plt.figure(figsize=(10, 8))
+        plt.plot(fpr, tpr, label=f'ROC (AUC = {roc_auc:.3f})', color='darkorange', lw=2)
+        plt.plot([0, 1], [0, 1], 'k--', label='Random')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title(f"{'Global' if client_id is None else f'Client {client_id}'} ROC Curve")
+        plt.legend(loc="lower right")
+        plt.grid(True)
+        plt.savefig(f"{base_dir}/roc_curve.png")
+        plt.close()
+
+        # 5. Save detailed metrics
+        metrics = {
+            'Accuracy': accuracy_score(y_true, y_pred),
+            'Precision': precision_score(y_true, y_pred, average='binary'),
+            'Recall': recall_score(y_true, y_pred, average='binary'),
+            'F1-Score': f1_score(y_true, y_pred, average='binary'),
+            'AUC-ROC': roc_auc
+        }
+        
+        # Print metrics
+        print("\nPerformance Metrics:")
+        for metric, value in metrics.items():
+            print(f"{metric}: {value:.4f}")
+        
+        # Save metrics to CSV
+        pd.DataFrame([metrics]).to_csv(f"{base_dir}/metrics_summary.csv", index=False)
+
     except Exception as e:
         print(f"Error in analyze_results: {e}")
+        import traceback
+        print(traceback.format_exc())
 
 def plot_client_data_distribution():
     """Plot data distribution using bar charts for normal vs attack samples"""
@@ -173,7 +239,6 @@ def plot_training_time_vs_clients(training_times: Dict[int, float]):
     plt.close()
 
 def plot_all_clients_distribution():
-    """Plot data distribution for all clients in a single figure"""
     ensure_directory()
     
     try:
@@ -185,20 +250,22 @@ def plot_all_clients_distribution():
             print("No client data available")
             return
             
+        # Create subplots for each client
         fig, axes = plt.subplots(1, num_clients, figsize=(6*num_clients, 5))
         fig.suptitle('Data Distribution Across All Clients', fontsize=16, y=1.05)
         
-        # Convert axes to array if there's only one client
+        # Ensure axes is always an array
         if num_clients == 1:
             axes = [axes]
             
-        for client_id, ax in enumerate(axes):
+        # Plot distribution for each client
+        for client_id in range(1, num_clients + 1):
             if client_id in distribution_info:
                 info = distribution_info[client_id]
                 sizes = [info['normal_samples'], info['attack_samples']]
                 labels = ['Normal', info['attack_category']]
-                ax.pie(sizes, labels=labels, autopct='%1.1f%%')
-                ax.set_title(f'Client {client_id}')
+                axes[client_id-1].pie(sizes, labels=labels, autopct='%1.1f%%')
+                axes[client_id-1].set_title(f'Client {client_id}\n({info["attack_category"]})')
         
         plt.tight_layout()
         plt.savefig("figures/all_clients_distribution.png")
@@ -208,58 +275,147 @@ def plot_all_clients_distribution():
         print(f"Error plotting distribution: {e}")
 
 def plot_global_metrics(history: pd.DataFrame):
-    """Plot global metrics including loss, accuracy, and F1 vs AUC"""
+    """Plot metrics from server's global results"""
+    print("\nFigure Generation Verification:")
+    print("1. Reading metrics from server")
+    print("2. Reading client metrics")
+    print("3. Generating visualizations")
+    print(f"4. Saving to figures/global/ directory")
+    
+    ensure_directory("figures/global")
+    
     try:
-        # Loss plot
-        plt.figure(figsize=(10, 6))
-        for metric in ['loss', 'val_loss']:
-            if metric in history.columns:
-                plt.plot(history[metric], label=metric.replace('_', ' ').title(), marker='o')
-        plt.title('Global Loss vs Rounds')
-        plt.xlabel('Rounds')
-        plt.ylabel('Loss')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig("figures/global_loss.png")
+        # Plot individual metrics
+        metrics = ["accuracy", "loss", "f1", "auc_roc", "precision", "recall"]
+        for metric in metrics:
+            plt.figure(figsize=(10, 6))
+            plt.plot(history[metric], 'b-', marker='o', linewidth=2)
+            plt.title(f'Global {metric.upper()} vs Rounds')
+            plt.xlabel('Rounds')
+            plt.ylabel(metric.title())
+            plt.grid(True)
+            plt.savefig(f"figures/global/{metric}_history.png")
+            plt.close()
+        
+        # Plot combined metrics
+        plt.figure(figsize=(15, 10))
+        for i, metric in enumerate(metrics, 1):
+            plt.subplot(2, 3, i)
+            plt.plot(history[metric], 'b-', marker='o')
+            plt.title(f'Global {metric.upper()}')
+            plt.xlabel('Rounds')
+            plt.ylabel(metric.title())
+            plt.grid(True)
+        
+        plt.tight_layout()
+        plt.savefig("figures/global/all_metrics.png")
         plt.close()
         
-        # Combined metrics plot
-        plt.figure(figsize=(12, 6))
-        metrics = ['accuracy', 'f1', 'auc_roc']
-        for metric in metrics:
-            if metric in history.columns:
-                plt.plot(history[metric], label=metric.replace('_', ' ').title(), marker='o')
-        plt.title('Global Performance Metrics')
-        plt.xlabel('Rounds')
-        plt.ylabel('Score')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig("figures/global_metrics.png")
-        plt.close()
+        # Print final performance
+        final_metrics = history.iloc[-1].to_dict()
+        print("\nCurrent Global Performance:")
+        print("=" * 40)
+        for metric, value in final_metrics.items():
+            if isinstance(value, float):
+                print(f"{metric:15s}: {value:.4f}")
+        print("=" * 40)
+        
+        pd.DataFrame([final_metrics]).to_csv("figures/global/final_metrics.csv")
+        
     except Exception as e:
         print(f"Error in plot_global_metrics: {e}")
 
-if __name__ == "__main__":
-    # Example data for testing
-    history = pd.DataFrame({
-        'loss': np.random.rand(10),
-        'val_loss': np.random.rand(10),
-        'accuracy': np.random.rand(10),
-        'val_accuracy': np.random.rand(10),
-        'f1': np.random.rand(10),
-        'auc_roc': np.random.rand(10)
-    })
-    y_true = np.random.randint(0, 5, 100)
-    y_pred = np.random.randint(0, 5, 100)
-    y_score = np.random.rand(100, 5)
-    classes = ['Normal', 'DDoS', 'MITM', 'MQTT', 'Recon']
-    client_accuracies = {0: 0.9, 1: 0.85, 2: 0.88, 3: 0.87}
-    training_times = {0: 120, 1: 150, 2: 130, 3: 140}
+def plot_client_metrics(client_id: int):
+    """Plot metrics from individual client results"""
+    metrics_file = f'fl_metrics_client_{client_id}.csv'
+    if os.path.exists(metrics_file):
+        history = pd.read_csv(metrics_file)
+        ensure_directory(f"figures/client_{client_id}")
+        try:
+            metrics = ["accuracy", "loss", "f1", "auc_roc", "precision", "recall"]
+            for metric in metrics:
+                plt.figure(figsize=(10, 6))
+                plt.plot(history[metric], 'b-', marker='o', linewidth=2)
+                plt.title(f'Client {client_id} {metric.upper()} vs Rounds')
+                plt.xlabel('Rounds')
+                plt.ylabel(metric.title())
+                plt.grid(True)
+                plt.savefig(f"figures/client_{client_id}/{metric}_history.png")
+                plt.close()
+        except Exception as e:
+            print(f"Error in plot_client_metrics for Client {client_id}: {e}")
 
-    # Generate figures
-    analyze_results(history, y_true, y_pred, y_score, classes)
-    for client_id in range(4):
-        analyze_results(history, y_true, y_pred, y_score, classes, client_id)
-    plot_client_data_distribution()
-    plot_client_accuracy_distribution(client_accuracies)
-    plot_training_time_vs_clients(training_times)
+if __name__ == "__main__":
+    print("Loading real data for visualization...")
+    
+    try:
+        # Create base directories
+        ensure_directory("figures")
+        ensure_directory("figures/global")
+        
+        # Try to load global metrics
+        global_results_available = False
+        if os.path.exists('global_metrics.csv'):
+            global_history = pd.read_csv('global_metrics.csv')
+            if os.path.exists('global_predictions.csv'):
+                global_predictions = pd.read_csv('global_predictions.csv')
+                global_results_available = True
+                print("Generating global visualizations...")
+                analyze_results(
+                    global_history,
+                    global_predictions['true_labels'],
+                    global_predictions['predicted_labels'],
+                    global_predictions['scores'],
+                    ['Normal', 'Attack']
+                )
+            else:
+                print("Global predictions file not found, skipping global analysis")
+        else:
+            print("Global metrics file not found, skipping global analysis")
+        
+        # Ensure global metrics are plotted
+        if os.path.exists('global_metrics.csv'):
+            print("\nGenerating global metrics visualizations...")
+            global_history = pd.read_csv('global_metrics.csv')
+            plot_global_metrics(global_history)
+        
+        # Generate client-specific visualizations
+        client_results_available = False
+        for client_id in range(1, 5):
+            print(f"\nChecking Client {client_id} data...")
+            ensure_directory(f"figures/client_{client_id}")
+            
+            metrics_file = f'fl_metrics_client_{client_id}.csv'
+            labels_file = f'fl_labels_client_{client_id}.csv'
+            
+            if os.path.exists(metrics_file) and os.path.exists(labels_file):
+                print(f"Generating visualizations for Client {client_id}")
+                history = pd.read_csv(metrics_file)
+                predictions = pd.read_csv(labels_file)
+                
+                analyze_results(
+                    history,
+                    predictions['true_labels'],
+                    predictions['predicted_labels'],
+                    predictions['scores'],
+                    ['Normal', 'Attack'],
+                    client_id
+                )
+                client_results_available = True
+            else:
+                print(f"Data files missing for Client {client_id}, skipping")
+        
+        # Always generate distribution plots
+        print("\nGenerating distribution plots...")
+        plot_client_data_distribution()
+        plot_all_clients_distribution()
+        
+        if not global_results_available and not client_results_available:
+            print("\nWarning: No results files found. Run training first!")
+        
+    except Exception as e:
+        print(f"Error in main: {e}")
+        import traceback
+        print(traceback.format_exc())
+    
+    print("\nVisualization generation complete!")
