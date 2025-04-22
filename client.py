@@ -130,6 +130,9 @@ def main(client_id):
     
     # Initialize model with correct input shape
     X_train, y_train, X_val, y_val = client_data[client_id]
+    print(f"Client {client_id} label distribution:")
+    print(f"Train labels: {np.unique(y_train)}")
+    print(f"Validation labels: {np.unique(y_val)}")
     input_shape = len(num_cols)
     print(f"Client {client_id} model input shape: {input_shape}")
     
