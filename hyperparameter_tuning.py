@@ -73,7 +73,7 @@ def tune_hyperparameters():
     tuner = RandomSearch(
         lambda hp: build_model(hp, input_shape),
         objective='val_accuracy',
-        max_trials=10,  # Increased from 5
+        max_trials=5,  # Increased from 5
         executions_per_trial=3,  # Increased from 2
         directory='tuning',
         project_name='fl_tuning'

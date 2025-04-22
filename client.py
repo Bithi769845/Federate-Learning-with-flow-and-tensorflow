@@ -39,8 +39,13 @@ class FLClient(fl.client.NumPyClient):
         
         # Calculate and store metrics
         y_pred = self.model.predict(self.X_val, verbose=0)
-        y_pred_class = np.round(y_pred).flatten()
-        
+        if y_pred.shape[1] > 1:
+         print("Warning: Multiclass output detected")
+        else:
+         print("Binary classification output detected")
+       #y_pred_class = np.round(y_pred).flatten()
+        y_pred_class = (y_pred >= 0.5).astype(int).flatten()
+
         round_metrics = {
             "loss": history.history['loss'][-1],
             "val_loss": history.history['val_loss'][-1],
@@ -82,6 +87,8 @@ class FLClient(fl.client.NumPyClient):
             
             # Generate visualizations
             history_df = pd.DataFrame(self.history)
+            print("y_true:", self.y_val)
+            print("y_pred_class:", y_pred_class)
             analyze_results(history_df, self.y_val, y_pred_class, y_score, self.classes, self.client_id)
             
             return loss, len(self.X_val), metrics
@@ -130,9 +137,14 @@ def main(client_id):
     
     # Initialize model with correct input shape
     X_train, y_train, X_val, y_val = client_data[client_id]
-    print(f"Client {client_id} label distribution:")
-    print(f"Train labels: {np.unique(y_train)}")
-    print(f"Validation labels: {np.unique(y_val)}")
+    # 🔍 Debug: Check label values
+    print("Unique y_val labels:", np.unique(y_val))  # ✅ Add here
+
+    if len(np.unique(y_train)) > 2 or len(np.unique(y_val)) > 2:
+     print(f"Warning: Client {client_id} may not be binary!")
+    else :
+        print(f"Client {client_id} is binary!")
+
     input_shape = len(num_cols)
     print(f"Client {client_id} model input shape: {input_shape}")
     

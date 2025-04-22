@@ -112,6 +112,10 @@ def create_non_iid_data(df, num_cols, attack_mapping, validation_split=0.2):
     # Save distribution info for visualization
     with open("distribution_info.pkl", "wb") as f:
         pickle.dump(distribution_info, f)
+            # Debug: print label distributions for each client
+    for client_id, (X_train, y_train, X_val, y_val) in client_data.items():
+        print(f"[Client {client_id}] Unique Train Labels: {np.unique(y_train)} | Unique Val Labels: {np.unique(y_val)}")
+
 
     return client_data, distribution_info
 

@@ -54,7 +54,7 @@ def plot_metrics(history: pd.DataFrame, client_id=None):
 
 def plot_confusion_matrix(y_true, y_pred, classes, filename):
     ensure_directory()
-    cm = confusion_matrix(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred,labels=[0,1])
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
     plt.title('Confusion Matrix')
@@ -250,9 +250,13 @@ if __name__ == "__main__":
         'auc_roc': np.random.rand(10)
     })
     y_true = np.random.randint(0, 5, 100)
-    y_pred = np.random.randint(0, 5, 100)
+    # y_pred = np.random.randint(0, 5, 100)
+    
+
     y_score = np.random.rand(100, 5)
-    classes = ['Normal', 'DDoS', 'MITM', 'MQTT', 'Recon']
+    y_pred = (y_score[:, 0] >= 0.5).astype(int)
+    # Use binary classification
+    classes = ['Normal', 'Attack']
     client_accuracies = {0: 0.9, 1: 0.85, 2: 0.88, 3: 0.87}
     training_times = {0: 120, 1: 150, 2: 130, 3: 140}
 
