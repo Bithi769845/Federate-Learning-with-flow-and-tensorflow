@@ -64,12 +64,28 @@ def tune_hyperparameters():
     # Load and preprocess data
     df, num_cols, label_mapping, label_encoders = preprocess_data()
     input_shape = len(num_cols)
-    print(f"Tuning model input shape: {input_shape}")
+    # print(f"Number of features: {input_shape}")
+    # print(f"Tuning model input shape: {input_shape}")
     
     # Create non-IID data
-    client_data, _ = create_non_iid_data(df, num_cols, label_mapping)
+    client_data, _ = create_non_iid_data(df, num_cols)
+    # for client_id, data in client_data.items():
+    #     print(f"Client {client_id} data shape: {data.shape}")
+    #     pass
+    # print(f"Client data keys: {client_data.keys()}")
+    # print(f"Client data: {client_data[0].shape}")
+    # Iterate over the client_data dictionary and print the shape of each client's data
+    # Assuming client_data[client_id] contains a tuple (X, y) for each client
+    # Assuming that each value in client_data is a tuple (X, y)
+    # Assuming each client_data item contains 4 parts (X_train, y_train, X_val, y_val)
+    # for client_id, data in client_data.items():
+    #     X_train, y_train, X_val, y_val = data  # Unpack the tuple into the 4 parts
+    #     print(f"Client {client_id} data shape: X_train: {X_train.shape}, y_train: {y_train.shape}, X_val: {X_val.shape}, y_val: {y_val.shape}")
+
+
     X_train, y_train, X_val, y_val = client_data[0]
-    
+
+ 
     tuner = RandomSearch(
         lambda hp: build_model(hp, input_shape),
         objective='val_accuracy',
