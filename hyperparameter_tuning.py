@@ -14,6 +14,8 @@ def build_model(hp, input_shape):
                 hp.Float('l2_1', 1e-4, 1e-2, sampling='log'))
         ),
         tf.keras.layers.Dropout(hp.Float('dropout_1', 0.2, 0.5)),
+
+
         tf.keras.layers.Dense(
             units=hp.Int('units_2', 32, 256, step=32),
             activation='relu',
@@ -21,17 +23,25 @@ def build_model(hp, input_shape):
                 hp.Float('l2_2', 1e-4, 1e-2, sampling='log'))
         ),
         tf.keras.layers.Dropout(hp.Float('dropout_2', 0.2, 0.5)),
+
+
         tf.keras.layers.Dense(1, activation='sigmoid')  # Binary output layer
     ])
 
+    # print(f"Model summary: {model.summary()}")
+
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=hp.Float('lr', 1e-4, 1e-2, sampling='log'))
-    
+    # print(f"Optimizer: {optimizer}")
+    # print(f"Learning rate: {optimizer.learning_rate.numpy()}")
     model.compile(
         optimizer=optimizer,
         loss='binary_crossentropy',
         metrics=['accuracy']
     )
+
+    # print("Model summary:", model)
+
     return model
 
 def save_hyperparameters(best_hps):
@@ -83,8 +93,14 @@ def tune_hyperparameters():
     #     print(f"Client {client_id} data shape: X_train: {X_train.shape}, y_train: {y_train.shape}, X_val: {X_val.shape}, y_val: {y_val.shape}")
 
 
-    X_train, y_train, X_val, y_val = client_data[0]
+    # X_train, y_train, X_val, y_val = client_data[0]
 
+    X_train_combined = np.concatenate([client_data[i][0] for i in range(len(client_data))], axis=0)
+    y_train_combined = np.concatenate([client_data[i][1] for i in range(len(client_data))], axis=0)
+    X_val_combined = np.concatenate([client_data[i][2] for i in range(len(client_data))], axis=0)
+    y_val_combined = np.concatenate([client_data[i][3] for i in range(len(client_data))], axis=0)
+
+    # print(f"X_train_combined shape: {X_train_combined.shape}, y_train_combined shape: {y_train_combined.shape}, X_val_combined shape: {X_val_combined.shape}, y_val_combined shape: {y_val_combined.shape}")
  
     tuner = RandomSearch(
         lambda hp: build_model(hp, input_shape),
@@ -94,19 +110,26 @@ def tune_hyperparameters():
         directory='tuning',
         project_name='fl_tuning'
     )
+    # print("Hyperparameter tuning started..." , tuner)
+    # best_model = tuner.get_best_models(1)[0]  # Get the best model after tuning
+
+    # You can print the summary of the best model
+    # print("Best Model Architecture:")
+    # best_model.summary()
+
     
     print("Starting hyperparameter tuning...")
     tuner.search(
-        X_train, y_train,
+        X_train_combined, y_train_combined,
         epochs=15,  # Increased from 10
         batch_size=32,  # Added batch_size
-        validation_data=(X_val, y_val),
+        validation_data=(X_val_combined, y_val_combined),
         verbose=1,
         callbacks=[tf.keras.callbacks.EarlyStopping(patience=3)]  # Added early stopping
     )
     
     best_hps = tuner.get_best_hyperparameters(1)[0]
-    print("\nBest hyperparameters found:", best_hps.values)
+    # print("\nBest hyperparameters found 1:", best_hps.values)
     
     # Convert to dictionary format and save
     best_params = {
@@ -118,9 +141,10 @@ def tune_hyperparameters():
         'dropout_2': best_hps.get('dropout_2'),
         'lr': best_hps.get('lr')
     }
+    # print("Best hyperparameters found 2:", best_params)
     save_hyperparameters(best_params)
     return best_params
 
 if __name__ == "__main__":
     best_params = tune_hyperparameters()
-    print("Best hyperparameters:", best_params.values)
+    # print("Best hyperparameters:", best_params.values)

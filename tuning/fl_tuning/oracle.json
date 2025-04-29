@@ -1,1 +1,155 @@
-{"ongoing_trials": {}, "hyperparameters": {"space": [{"class_name": "Int", "config": {"name": "units_1", "default": null, "conditions": [], "min_value": 64, "max_value": 512, "step": 64, "sampling": "linear"}}, {"class_name": "Float", "config": {"name": "l2_1", "default": 0.0001, "conditions": [], "min_value": 0.0001, "max_value": 0.01, "step": null, "sampling": "log"}}, {"class_name": "Float", "config": {"name": "dropout_1", "default": 0.2, "conditions": [], "min_value": 0.2, "max_value": 0.5, "step": null, "sampling": "linear"}}, {"class_name": "Int", "config": {"name": "units_2", "default": null, "conditions": [], "min_value": 32, "max_value": 256, "step": 32, "sampling": "linear"}}, {"class_name": "Float", "config": {"name": "l2_2", "default": 0.0001, "conditions": [], "min_value": 0.0001, "max_value": 0.01, "step": null, "sampling": "log"}}, {"class_name": "Float", "config": {"name": "dropout_2", "default": 0.2, "conditions": [], "min_value": 0.2, "max_value": 0.5, "step": null, "sampling": "linear"}}, {"class_name": "Float", "config": {"name": "lr", "default": 0.0001, "conditions": [], "min_value": 0.0001, "max_value": 0.01, "step": null, "sampling": "log"}}], "values": {"units_1": 64, "l2_1": 0.0001, "dropout_1": 0.2, "units_2": 32, "l2_2": 0.0001, "dropout_2": 0.2, "lr": 0.0001}}, "start_order": ["0", "1", "2", "3", "4"], "end_order": ["0", "1", "2", "3", "4"], "run_times": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1}, "retry_queue": [], "seed": 811, "seed_state": 846, "tried_so_far": ["d37de8e11967465a8602ae24fe6b3899", "37b5c67c5af7843813ae6be7783b52b6", "c6d6687c16842422a64c8295dfaff4ed", "f9374414d4bff14037f72b5c2fcd87c7", "9f2549435cde669a19430e0dd4872361"], "id_to_hash": {"0": "d37de8e11967465a8602ae24fe6b3899", "1": "f9374414d4bff14037f72b5c2fcd87c7", "2": "9f2549435cde669a19430e0dd4872361", "3": "c6d6687c16842422a64c8295dfaff4ed", "4": "37b5c67c5af7843813ae6be7783b52b6"}, "display": {"search_start": "2025-04-22T16:48:08.478343", "trial_start": {"0": "2025-04-22T16:48:08.478343", "1": "2025-04-22T16:49:20.332406", "2": "2025-04-22T16:50:09.776995", "3": "2025-04-22T16:51:19.789101", "4": "2025-04-22T16:52:49.302658"}, "trial_number": {"0": 1, "1": 2, "2": 3, "3": 4, "4": 5}}}
+{
+    "ongoing_trials": {},
+    "hyperparameters": {
+        "space": [
+            {
+                "class_name": "Int",
+                "config": {
+                    "name": "units_1",
+                    "default": null,
+                    "conditions": [],
+                    "min_value": 64,
+                    "max_value": 512,
+                    "step": 64,
+                    "sampling": "linear"
+                }
+            },
+            {
+                "class_name": "Float",
+                "config": {
+                    "name": "l2_1",
+                    "default": 0.0001,
+                    "conditions": [],
+                    "min_value": 0.0001,
+                    "max_value": 0.01,
+                    "step": null,
+                    "sampling": "log"
+                }
+            },
+            {
+                "class_name": "Float",
+                "config": {
+                    "name": "dropout_1",
+                    "default": 0.2,
+                    "conditions": [],
+                    "min_value": 0.2,
+                    "max_value": 0.5,
+                    "step": null,
+                    "sampling": "linear"
+                }
+            },
+            {
+                "class_name": "Int",
+                "config": {
+                    "name": "units_2",
+                    "default": null,
+                    "conditions": [],
+                    "min_value": 32,
+                    "max_value": 256,
+                    "step": 32,
+                    "sampling": "linear"
+                }
+            },
+            {
+                "class_name": "Float",
+                "config": {
+                    "name": "l2_2",
+                    "default": 0.0001,
+                    "conditions": [],
+                    "min_value": 0.0001,
+                    "max_value": 0.01,
+                    "step": null,
+                    "sampling": "log"
+                }
+            },
+            {
+                "class_name": "Float",
+                "config": {
+                    "name": "dropout_2",
+                    "default": 0.2,
+                    "conditions": [],
+                    "min_value": 0.2,
+                    "max_value": 0.5,
+                    "step": null,
+                    "sampling": "linear"
+                }
+            },
+            {
+                "class_name": "Float",
+                "config": {
+                    "name": "lr",
+                    "default": 0.0001,
+                    "conditions": [],
+                    "min_value": 0.0001,
+                    "max_value": 0.01,
+                    "step": null,
+                    "sampling": "log"
+                }
+            }
+        ],
+        "values": {
+            "units_1": 64,
+            "l2_1": 0.0001,
+            "dropout_1": 0.2,
+            "units_2": 32,
+            "l2_2": 0.0001,
+            "dropout_2": 0.2,
+            "lr": 0.0001
+        }
+    },
+    "start_order": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+    ],
+    "end_order": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+    ],
+    "run_times": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1
+    },
+    "retry_queue": [],
+    "seed": 811,
+    "seed_state": 846,
+    "tried_so_far": [
+        "d37de8e11967465a8602ae24fe6b3899",
+        "37b5c67c5af7843813ae6be7783b52b6",
+        "c6d6687c16842422a64c8295dfaff4ed",
+        "f9374414d4bff14037f72b5c2fcd87c7",
+        "9f2549435cde669a19430e0dd4872361"
+    ],
+    "id_to_hash": {
+        "0": "d37de8e11967465a8602ae24fe6b3899",
+        "1": "f9374414d4bff14037f72b5c2fcd87c7",
+        "2": "9f2549435cde669a19430e0dd4872361",
+        "3": "c6d6687c16842422a64c8295dfaff4ed",
+        "4": "37b5c67c5af7843813ae6be7783b52b6"
+    },
+    "display": {
+        "search_start": "2025-04-22T16:48:08.478343",
+        "trial_start": {
+            "0": "2025-04-22T16:48:08.478343",
+            "1": "2025-04-22T16:49:20.332406",
+            "2": "2025-04-22T16:50:09.776995",
+            "3": "2025-04-22T16:51:19.789101",
+            "4": "2025-04-22T16:52:49.302658"
+        },
+        "trial_number": {
+            "0": 1,
+            "1": 2,
+            "2": 3,
+            "3": 4,
+            "4": 5
+        }
+    }
+}
