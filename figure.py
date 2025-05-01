@@ -16,7 +16,7 @@ def plot_distribution():
     df, num_cols, label_mapping, label_encoders = preprocess_data()
     _, distribution = create_non_iid_data(df, num_cols, label_mapping)
     
-    labels = ['Normal', 'DDoS', 'MITM', 'MQTT', 'Recon']
+    labels = ['Normal', 'Attack']
     client_data = [[dist.get(label.lower(), 0) for label in labels] for dist in distribution.values()]
     
     plt.figure(figsize=(8, 6))

@@ -23,14 +23,22 @@ class MetricAggregator(fl.server.strategy.FedAvg):
             print(f"\nRound {self.round_number} Metrics:")
             for k, v in metrics.items():
                 print(f"{k}: {v:.4f}")
+        # aggregated.to_csv(f"metrics_round_{self.round_number}.csv", index=False)
+        # print(f"Aggregated metrics: {aggregated}")
         return aggregated
 
     def aggregate_fit(self, server_round, results, failures):
         aggregated_weights = super().aggregate_fit(server_round, results, failures)
+        # print(f"\nRound {server_round} Aggregated Weights:")
+        # for i, w in enumerate(aggregated_weights):
+        #     print(f"Layer {i}: {w.shape}")
+        # print(f"Aggregated weights: {aggregated_weights}")
+
         return aggregated_weights
 
 def weighted_average(metrics: List[Tuple[int, Dict]]) -> Dict:
     aggregated = {}
+    # print(f"Metrics received for aggregation: {metrics.typeof()}")
     for key in metrics[0][1].keys():
         if key == 'auc_roc':  # Handle AUC-ROC differently
             values = [m[key] for _, m in metrics]
@@ -38,6 +46,8 @@ def weighted_average(metrics: List[Tuple[int, Dict]]) -> Dict:
         else:
             total = sum(num_examples * m[key] for num_examples, m in metrics)
             aggregated[key] = total / sum(num_examples for num_examples, _ in metrics)
+
+    # print(f"Aggregated metrics: {aggregated}")
     return aggregated
 
 def start_server():
@@ -55,6 +65,7 @@ def start_server():
         initial_model = create_model(input_shape=input_shape, best_hps=best_hps)
         # print("Server model summary:")
         # initial_model.summary()
+        # print("Server model created successfully with value." , initial_model.get_weights())
         
         strategy = MetricAggregator(
             evaluate_metrics_aggregation_fn=weighted_average,
@@ -64,6 +75,8 @@ def start_server():
             min_fit_clients=1,        # Added
             initial_parameters=fl.common.ndarrays_to_parameters(initial_model.get_weights()),
         )
+
+        print("Server strategy initialized successfully and strategy value show.", strategy)
         
         # Add server config
         server_config = fl.server.ServerConfig(

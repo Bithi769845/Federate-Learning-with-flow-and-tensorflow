@@ -169,4 +169,4 @@ if __name__ == "__main__":
     df, num_cols, label_encoders, attack_mapping = preprocess_data()
     # print("Whole data shape", df.shape)
     client_data, distribution = create_non_iid_data(df, num_cols)
-    print("Data distribution per client:", distribution)
+    # print("Data distribution per client:", distribution)

@@ -11,7 +11,7 @@ import os
 import time
 from model import create_model
 
-class FLClient(fl.client.NumPyClient):
+class FLClient(fl.client.NumPyClient): 
     def __init__(self, model, X_train, y_train, X_val, y_val, client_id):
         self.model = model
         self.X_train, self.y_train = X_train, y_train
@@ -19,19 +19,24 @@ class FLClient(fl.client.NumPyClient):
         self.history = []
         self.client_id = client_id
         self.training_time = 0
-        self.classes = ['Normal', 'DDoS', 'MITM', 'MQTT', 'Recon']  # Add this line
+        self.classes = ['Normal', 'Attack']  # Add this line
+        # print(f"Client {client_id} initialized with {len(X_train)} training samples and {len(X_val)} validation samples")
+        # print("model summary " ,self.model.summary())  # Print model summary for debugging
+        # print("trainging " ,self.X_train.shape, self.y_train.shape, self.X_val.shape, self.y_val.shape)  # Print shapes for debugging
+        # print("hostory" , self.history)
 
     def get_parameters(self, config):
         return self.model.get_weights()
 
     def fit(self, parameters, config):
+        # print("parameter", parameters)
         self.model.set_weights(parameters)
         
         start_time = time.time()
         history = self.model.fit(
             self.X_train, self.y_train,
             epochs=config.get("epochs", 5),
-            batch_size=config.get("batch_size", 32),
+            batch_size=config.get("batch_size", 256),
             validation_data=(self.X_val, self.y_val),
             verbose=0
         )
@@ -39,12 +44,22 @@ class FLClient(fl.client.NumPyClient):
         
         # Calculate and store metrics
         y_pred = self.model.predict(self.X_val, verbose=0)
+        # print("y val" , self.y_val)
+        # # print("y_val ", self.X_val)  # Debugging line
+        # print("y_pred:", y_pred)  # Debugging line
+        # print("y_pred shape:", y_pred.shape)  # Debugging line
         if y_pred.shape[1] > 1:
          print("Warning: Multiclass output detected")
-        else:
-         print("Binary classification output detected")
+        # else:
+        #  print("Binary classification output detected")
        #y_pred_class = np.round(y_pred).flatten()
+        # print("y pred" , y_pred.shape)
         y_pred_class = (y_pred >= 0.5).astype(int).flatten()
+
+        # print("y_pred_class" , y_pred_class.shape)
+        # print
+
+        # print("y_pred" , y_pred)
 
         round_metrics = {
             "loss": history.history['loss'][-1],
@@ -55,23 +70,27 @@ class FLClient(fl.client.NumPyClient):
             "auc_roc": roc_auc_score(self.y_val, y_pred.flatten())
         }
         self.history.append(round_metrics)
+
+        # print("history" , self.history)
         
         # Print current round metrics
         print(f"\nClient {self.client_id} Round Metrics:")
         for k, v in round_metrics.items():
             print(f"{k}: {v:.4f}")
-        
+        # print("X_train Length:", len(self.X_train))
         return self.model.get_weights(), len(self.X_train), {}
 
     def evaluate(self, parameters, config):
         try:
             self.model.set_weights(parameters)
             loss, accuracy = self.model.evaluate(self.X_val, self.y_val, verbose=0)
-            
+            print("accuracy and loss:", accuracy, loss)
             y_pred = self.model.predict(self.X_val, verbose=0)
             y_pred_class = np.round(y_pred).flatten()
             y_score = y_pred.flatten()  # For binary classification
-            
+            # print("y_pred_class" , y_pred_class)
+            # print("y_pred" , y_pred)
+            # print("y_score" , y_score)
             # Calculate metrics
             metrics = {
                 "precision": precision_score(self.y_val, y_pred_class, average='binary'),
@@ -81,7 +100,8 @@ class FLClient(fl.client.NumPyClient):
                 "accuracy": accuracy,
                 "loss": loss
             }
-            
+            # print(matrics)
+            # print("metrics" , metrics)
             # Save client-specific metrics
             self._save_metrics(metrics, y_pred_class, y_score)
             
@@ -121,13 +141,19 @@ class FLClient(fl.client.NumPyClient):
         )
 
 def main(client_id):
-    print(f"\n{'='*50}")
+    print(f"\n{'='*20}")
     print(f"Starting Client {client_id}")
-    print(f"{'='*50}\n")
+    print(f"{'='*20}\n")
     
     # Load and preprocess data
     df, num_cols, label_mapping, _ = preprocess_data()
-    client_data, distribution = create_non_iid_data(df, num_cols, label_mapping)
+    client_data, distribution = create_non_iid_data(df, num_cols)
+
+    # print(f"Client {client_id} data shape: {df.shape}")
+    # print(f"Client {client_id} num_cols: {num_cols}\n")
+
+    # print(f"Client {client_id} data shape: {client_data[client_id][0].shape}")
+    # print(f"Client {client_id} data distribution: {distribution[client_id]}")   
     
     # Verify client_id is valid
     if client_id not in client_data:
@@ -135,10 +161,14 @@ def main(client_id):
         print(f"Error: Invalid client_id {client_id}. Valid IDs are: {valid_ids}")
         return
     
+    # print(f"Client {client_id} data shape: {client_data[client_id][0].shape}")
+
     # Initialize model with correct input shape
     X_train, y_train, X_val, y_val = client_data[client_id]
+
+    # print(f"Client {client_id} data shape: X_train: {X_train.shape}, y_train: {y_train.shape}, X_val: {X_val.shape}, y_val: {y_val.shape}")
     # 🔍 Debug: Check label values
-    print("Unique y_val labels:", np.unique(y_val))  # ✅ Add here
+    # print("Unique y_val labels:", np.unique(y_val))  # ✅ Add here
 
     if len(np.unique(y_train)) > 2 or len(np.unique(y_val)) > 2:
      print(f"Warning: Client {client_id} may not be binary!")
@@ -146,21 +176,22 @@ def main(client_id):
         print(f"Client {client_id} is binary!")
 
     input_shape = len(num_cols)
-    print(f"Client {client_id} model input shape: {input_shape}")
+    # print(f"Client {client_id} model input shape: {input_shape}")
     
     # Only perform tuning if hyperparameters don't exist
     if client_id == 0 and not os.path.exists('best_hyperparameters.json'):
-        print(f"\nTuning hyperparameters (Client {client_id} is primary)...")
+        # print(f"\nTuning hyperparameters (Client {client_id} is primary)...")
         best_hps = tune_hyperparameters()
     else:
-        print(f"\nClient {client_id} loading existing hyperparameters...")
+        # print(f"\nClient {client_id} loading existing hyperparameters...")
         best_hps = load_hyperparameters()
     
-    print(f"Client {client_id} using hyperparameters:", best_hps)
+    # print(f"Client {client_id} using hyperparameters:", best_hps)
+
     model = create_model(input_shape=input_shape, best_hps=best_hps)
     
-    print(f"\nClient {client_id} model architecture:")
-    model.summary()
+    # print(f"\nClient {client_id} model architecture:")
+    # model.summary()
     
     # Save initial client info
     client_info = {
@@ -169,6 +200,8 @@ def main(client_id):
         'attack_category': distribution[client_id]['attack_category'],
         'total_samples': len(X_train) + len(X_val)
     }
+
+    # print(f"Client {client_id} info: {client_info}")
     
     pd.DataFrame([client_info]).to_csv(
         f'client_info_{client_id}.csv',
@@ -176,10 +209,10 @@ def main(client_id):
     )
     
     # Start client with more verbose output
-    print(f"\nStarting Federated Learning for Client {client_id}")
-    print(f"Attack Category: {distribution[client_id]['attack_category']}")
-    print(f"Training samples: {len(X_train)}")
-    print(f"Validation samples: {len(X_val)}")
+    # print(f"\nStarting Federated Learning for Client {client_id}")
+    # print(f"Attack Category: {distribution[client_id]['attack_category']}")
+    # print(f"Training samples: {len(X_train)}")
+    # print(f"Validation samples: {len(X_val)}")
     
     # Start client
     print(f"\nStarting Federated Learning for Client {client_id}")
