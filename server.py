@@ -45,16 +45,16 @@ def start_server():
         # Get the correct input shape from data
         df, num_cols, _, _ = preprocess_data()
         input_shape = len(num_cols)
-        print(f"Server model input shape: {input_shape}")
+        # print(f"Server model input shape: {input_shape}")
         
         # Load the same hyperparameters used by clients
         best_hps = load_hyperparameters()
-        print("Using hyperparameters:", best_hps)
+        # print("Using hyperparameters:", best_hps)
         
         # Initialize model with correct input shape and hyperparameters
         initial_model = create_model(input_shape=input_shape, best_hps=best_hps)
-        print("Server model summary:")
-        initial_model.summary()
+        # print("Server model summary:")
+        # initial_model.summary()
         
         strategy = MetricAggregator(
             evaluate_metrics_aggregation_fn=weighted_average,

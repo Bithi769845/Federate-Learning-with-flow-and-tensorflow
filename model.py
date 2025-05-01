@@ -2,6 +2,8 @@ import tensorflow as tf
 from hyperparameter_tuning import get_default_hyperparameters
 
 def create_model(input_shape, best_hps=None):
+    print("input shape" , input_shape);
+    print("best_hps" , best_hps);
     if best_hps is None:
         best_hps = get_default_hyperparameters()
     
