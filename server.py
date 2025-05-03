@@ -12,7 +12,7 @@ class MetricAggregator(fl.server.strategy.FedAvg):
         super().__init__(*args, **kwargs)
         self.metrics_history = []
         self.round_number = 0
-        self.test = []
+        
 
     def aggregate_evaluate(self, server_round, results, failures):
         aggregated = super().aggregate_evaluate(server_round, results, failures)
@@ -26,8 +26,11 @@ class MetricAggregator(fl.server.strategy.FedAvg):
             print(f"\nRound {self.round_number} Metrics:")
             for k, v in metrics.items():
                 print(f"{k}: {v:.4f}")
+        
+            
+            
         # aggregated.to_csv(f"metrics_round_.csv", index=False)
-        # print(f"Aggregated metrics: {aggregated}")
+        # print(f"Aggregated metrics evaluate: {aggregated}")
         return aggregated
 
     def aggregate_fit(self, server_round, results, failures):
@@ -50,7 +53,7 @@ def weighted_average(metrics: List[Tuple[int, Dict]]) -> Dict:
             total = sum(num_examples * m[key] for num_examples, m in metrics)
             aggregated[key] = total / sum(num_examples for num_examples, _ in metrics)
 
-    # print(f"Aggregated metrics: {aggregated}")
+    # print(f"Aggregated metrics weighted: {aggregated}")
     return aggregated
 
 def start_server():

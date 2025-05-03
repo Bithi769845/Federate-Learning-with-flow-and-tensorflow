@@ -245,18 +245,18 @@ def plot_global_metrics(history: pd.DataFrame):
 if __name__ == "__main__":
     # Example data for testing
     history = pd.DataFrame({
-        'loss': np.random.rand(10),
-        'val_loss': np.random.rand(10),
-        'accuracy': np.random.rand(10),
-        'val_accuracy': np.random.rand(10),
-        'f1': np.random.rand(10),
-        'auc_roc': np.random.rand(10)
+        'loss': np.random.rand(100),
+        'val_loss': np.random.rand(100),
+        'accuracy': np.random.rand(100),
+        'val_accuracy': np.random.rand(100),
+        'f1': np.random.rand(100),
+        'auc_roc': np.random.rand(100)
     })
-    y_true = np.random.randint(0, 5, 100)
+    y_true = np.random.randint(0, 84, 10000)
     # y_pred = np.random.randint(0, 5, 100)
     
 
-    y_score = np.random.rand(100, 5)
+    y_score = np.random.rand(10000, 84)
     y_pred = (y_score[:, 0] >= 0.5).astype(int)
     # Use binary classification
     classes = ['Normal', 'Attack']
