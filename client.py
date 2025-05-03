@@ -107,8 +107,21 @@ class FLClient(fl.client.NumPyClient):
             
             # Generate visualizations
             history_df = pd.DataFrame(self.history)
-            print("y_true:", self.y_val)
-            print("y_pred_class:", y_pred_class)
+            # print("y_true:", self.y_val)
+            # print("y_pred_class:", y_pred_class)
+            # print("history" , history_df)
+            # history_df.to_csv(f'client_{self.client_id}_history.csv', index=False)
+            # print(self.classes)
+            # Initialize global lists to store the aggregated data
+           
+            
+          
+            
+
+            
+            # if(self.client_id is None):
+            #     analyze_results(history_df, self.y_val, y_pred_class, y_score, self.classes)
+            # else:
             analyze_results(history_df, self.y_val, y_pred_class, y_score, self.classes, self.client_id)
             
             return loss, len(self.X_val), metrics
@@ -119,26 +132,32 @@ class FLClient(fl.client.NumPyClient):
     def _save_metrics(self, metrics, y_pred, y_score):
         """Save metrics to client-specific files"""
         client_suffix = f"_client_{self.client_id}"
-        
+        # print("Y Val",self.y_val)
+        # print("Y Pred" , y_pred)
+        # print(" Y Score ", y_score)    
         # Save numerical metrics
-        pd.DataFrame([metrics]).to_csv(
-            f'fl_metrics{client_suffix}.csv',
-            mode='a',
-            header=not os.path.exists(f'fl_metrics{client_suffix}.csv'),
-            index=False
-        )
+
+
+        # pd.DataFrame([metrics]).to_csv(
+        #     f'fl_metrics{client_suffix}.csv',
+        #     mode='a',
+        #     header=not os.path.exists(f'fl_metrics{client_suffix}.csv'),
+        #     index=False
+        # )
+
+        # print("client suffix",client_suffix)
         
         # Save predictions
-        pd.DataFrame({
-            'true_labels': self.y_val,
-            'predicted_labels': y_pred,
-            'scores': y_score
-        }).to_csv(
-            f'fl_labels{client_suffix}.csv',
-            mode='a',
-            header=not os.path.exists(f'fl_labels{client_suffix}.csv'),
-            index=False
-        )
+        # pd.DataFrame({
+        #     'true_labels': self.y_val,
+        #     'predicted_labels': y_pred,
+        #     'scores': y_score
+        # }).to_csv(
+        #     f'fl_labels{client_suffix}.csv',
+        #     mode='a',
+        #     header=not os.path.exists(f'fl_labels{client_suffix}.csv'),
+        #     index=False
+        # )
 
 def main(client_id):
     print(f"\n{'='*20}")
@@ -203,10 +222,10 @@ def main(client_id):
 
     # print(f"Client {client_id} info: {client_info}")
     
-    pd.DataFrame([client_info]).to_csv(
-        f'client_info_{client_id}.csv',
-        index=False
-    )
+    # pd.DataFrame([client_info]).to_csv(
+    #     f'client_info_{client_id}.csv',
+    #     index=False
+    # )
     
     # Start client with more verbose output
     # print(f"\nStarting Federated Learning for Client {client_id}")

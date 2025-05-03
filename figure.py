@@ -7,6 +7,7 @@ from typing import Dict, List
 import os
 from data_preprocessing import create_non_iid_data, preprocess_data
 import pickle
+from server import weighted_average as wa
 
 def ensure_directory(directory="figures"):
     if not os.path.exists(directory):
@@ -28,8 +29,8 @@ def plot_distribution():
 def plot_metrics(history: pd.DataFrame, client_id=None):
     ensure_directory()
     
-    metrics = ["loss", "accuracy", "f1", "auc_roc"]
-    titles = ["Loss vs Rounds", "Accuracy vs Rounds", "F1 & AUC-ROC Scores"]
+    metrics = ["loss", "accuracy"]
+    titles = ["Loss vs Rounds", "Accuracy vs Rounds"]
     
     for metric, title in zip(metrics, titles):
         if metric in history.columns:
@@ -68,16 +69,17 @@ def plot_roc_curve(y_true, y_score, classes, filename):
     plt.figure(figsize=(8, 6))
     
     # Handle binary classification case
-    if y_score.shape[1] != len(classes):
-        fpr, tpr, _ = roc_curve(y_true, y_score[:, 0])
+    if y_score.ndim == 1:
+        fpr, tpr, _ = roc_curve(y_true, y_score)
         auc_score = auc(fpr, tpr)
         plt.plot(fpr, tpr, label=f'ROC curve (AUC = {auc_score:.2f})')
     else:
         # Multi-class case
-        for i, cls in enumerate(classes):
-            fpr, tpr, _ = roc_curve(y_true == i, y_score[:, i])
-            auc_score = auc(fpr, tpr)
-            plt.plot(fpr, tpr, label=f'{cls} (AUC = {auc_score:.2f})')
+        print('Hudai')
+        # for i, cls in enumerate(classes):
+        #     fpr, tpr, _ = roc_curve(y_true == i, y_score[:, i])
+        #     auc_score = auc(fpr, tpr)
+        #     plt.plot(fpr, tpr, label=f'{cls} (AUC = {auc_score:.2f})')
     
     plt.plot([0, 1], [0, 1], 'k--')
     plt.xlabel('False Positive Rate')
@@ -96,14 +98,15 @@ def analyze_results(history: pd.DataFrame, y_true, y_pred, y_score, classes, cli
             print("Generating global metrics plots...")
             plot_global_metrics(history)
             plot_confusion_matrix(y_true, y_pred, ['Normal', 'Attack'], "confusion_global.png")
-            plot_roc_curve(y_true, y_score[:, 0] if y_score.ndim > 1 else y_score, ['Normal', 'Attack'], "roc_global.png")
+            plot_roc_curve(y_true, y_score, ['Normal', 'Attack'], "roc_global.png")
             plot_all_clients_distribution()
         else:
             # Client-specific metrics
             print(f"Generating plots for Client {client_id}...")
             plot_metrics(history, client_id)
             plot_confusion_matrix(y_true, y_pred, ['Normal', 'Attack'], f"confusion_client_{client_id}.png")
-            plot_roc_curve(y_true, y_score[:, 0] if y_score.ndim > 1 else y_score, ['Normal', 'Attack'], f"roc_client_{client_id}.png")
+            plot_roc_curve(y_true, y_score, ['Normal', 'Attack'], f"roc_client_{client_id}.png")
+
     except Exception as e:
         print(f"Error in analyze_results: {e}")
 
@@ -262,6 +265,7 @@ if __name__ == "__main__":
 
     # Generate figures
     analyze_results(history, y_true, y_pred, y_score, classes)
+
     for client_id in range(4):
         analyze_results(history, y_true, y_pred, y_score, classes, client_id)
     plot_client_data_distribution()

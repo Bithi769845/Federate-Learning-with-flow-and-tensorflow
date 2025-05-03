@@ -12,6 +12,7 @@ class MetricAggregator(fl.server.strategy.FedAvg):
         super().__init__(*args, **kwargs)
         self.metrics_history = []
         self.round_number = 0
+        self.test = []
 
     def aggregate_evaluate(self, server_round, results, failures):
         aggregated = super().aggregate_evaluate(server_round, results, failures)
@@ -20,10 +21,12 @@ class MetricAggregator(fl.server.strategy.FedAvg):
             self.round_number += 1
             metrics['round'] = self.round_number
             self.metrics_history.append(metrics)
+            # print(f"\nRound {self.metrics_history} Evaluation Metrics:")
+        
             print(f"\nRound {self.round_number} Metrics:")
             for k, v in metrics.items():
                 print(f"{k}: {v:.4f}")
-        # aggregated.to_csv(f"metrics_round_{self.round_number}.csv", index=False)
+        # aggregated.to_csv(f"metrics_round_.csv", index=False)
         # print(f"Aggregated metrics: {aggregated}")
         return aggregated
 
