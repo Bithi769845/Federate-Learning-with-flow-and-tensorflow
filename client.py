@@ -198,12 +198,12 @@ def main(client_id):
     # print(f"Client {client_id} model input shape: {input_shape}")
     
     # Only perform tuning if hyperparameters don't exist
-    if client_id == 0 and not os.path.exists('best_hyperparameters.json'):
-        # print(f"\nTuning hyperparameters (Client {client_id} is primary)...")
-        best_hps = tune_hyperparameters()
-    else:
+    # if client_id == 0 and not os.path.exists('best_hyperparameters.json'):
+    #     # print(f"\nTuning hyperparameters (Client {client_id} is primary)...")
+    #     best_hps = tune_hyperparameters()
+    # else:
         # print(f"\nClient {client_id} loading existing hyperparameters...")
-        best_hps = load_hyperparameters()
+    best_hps = load_hyperparameters()
     
     # print(f"Client {client_id} using hyperparameters:", best_hps)
 
@@ -213,12 +213,12 @@ def main(client_id):
     # model.summary()
     
     # Save initial client info
-    client_info = {
-        'client_id': client_id,
-        'input_shape': input_shape,
-        'attack_category': distribution[client_id]['attack_category'],
-        'total_samples': len(X_train) + len(X_val)
-    }
+    # client_info = {
+    #     'client_id': client_id,
+    #     'input_shape': input_shape,
+    #     'attack_category': distribution[client_id]['attack_category'],
+    #     'total_samples': len(X_train) + len(X_val)
+    # }
 
     # print(f"Client {client_id} info: {client_info}")
     

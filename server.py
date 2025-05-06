@@ -6,13 +6,16 @@ import tensorflow as tf
 from data_preprocessing import preprocess_data
 from model import create_model
 from hyperparameter_tuning import load_hyperparameters
+import json
 
 class MetricAggregator(fl.server.strategy.FedAvg):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.metrics_history = []
         self.round_number = 0
-        
+        self.evaluate_metrics_aggregation_fn = kwargs.get('evaluate_metrics_aggregation_fn', None)
+        print("evaluate metrics " ,self.evaluate_metrics_aggregation_fn);
+
 
     def aggregate_evaluate(self, server_round, results, failures):
         aggregated = super().aggregate_evaluate(server_round, results, failures)
@@ -27,6 +30,8 @@ class MetricAggregator(fl.server.strategy.FedAvg):
             for k, v in metrics.items():
                 print(f"{k}: {v:.4f}")
         
+            with open("metrics_history.json", "w") as json_file:
+                json.dump(self.metrics_history, json_file, indent=4) 
             
             
         # aggregated.to_csv(f"metrics_round_.csv", index=False)
@@ -77,8 +82,8 @@ def start_server():
             evaluate_metrics_aggregation_fn=weighted_average,
             fraction_fit=1.0,
             fraction_evaluate=1.0,
-            min_available_clients=1,  # Added
-            min_fit_clients=1,        # Added
+            min_available_clients=4,  # Added
+            min_fit_clients=4,        # Added
             initial_parameters=fl.common.ndarrays_to_parameters(initial_model.get_weights()),
         )
 

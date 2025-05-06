@@ -8,6 +8,9 @@ import os
 from data_preprocessing import create_non_iid_data, preprocess_data
 import pickle
 from server import weighted_average as wa
+from hyperparameter_tuning import tune_hyperparameters, load_hyperparameters
+from model import create_model
+
 
 def ensure_directory(directory="figures"):
     if not os.path.exists(directory):
@@ -228,7 +231,7 @@ def plot_global_metrics(history: pd.DataFrame):
         
         # Combined metrics plot
         plt.figure(figsize=(12, 6))
-        metrics = ['accuracy', 'f1', 'auc_roc']
+        metrics = ['accuracy']
         for metric in metrics:
             if metric in history.columns:
                 plt.plot(history[metric], label=metric.replace('_', ' ').title(), marker='o')
@@ -237,37 +240,60 @@ def plot_global_metrics(history: pd.DataFrame):
         plt.ylabel('Score')
         plt.legend()
         plt.grid(True)
-        plt.savefig("figures/global_metrics.png")
+        plt.savefig("figures/global_accuracy.png")
         plt.close()
     except Exception as e:
         print(f"Error in plot_global_metrics: {e}")
 
 if __name__ == "__main__":
-    # Example data for testing
-    history = pd.DataFrame({
-        'loss': np.random.rand(100),
-        'val_loss': np.random.rand(100),
-        'accuracy': np.random.rand(100),
-        'val_accuracy': np.random.rand(100),
-        'f1': np.random.rand(100),
-        'auc_roc': np.random.rand(100)
-    })
-    y_true = np.random.randint(0, 84, 10000)
-    # y_pred = np.random.randint(0, 5, 100)
-    
+    # Define client_id with an initial value
+    client_id = None
 
-    y_score = np.random.rand(10000, 84)
-    y_pred = (y_score[:, 0] >= 0.5).astype(int)
+    df, num_cols, label_mapping, label_encoders = preprocess_data()
+    client_data, _ = create_non_iid_data(df, num_cols)
+
+    input_shape = len(num_cols)
+    # print(f"Client {client_id} model input shape: {input_shape}")
+    
+    # Only perform tuning if hyperparameters don't exist
+    # if client_id == 0 and not os.path.exists('best_hyperparameters.json'):
+    #     # print(f"\nTuning hyperparameters (Client {client_id} is primary)...")
+    #     best_hps = tune_hyperparameters()
+    # else:
+        # print(f"\nClient {client_id} loading existing hyperparameters...")
+    best_hps = load_hyperparameters()
+    
+    # print(f"Client {client_id} using hyperparameters:", best_hps)
+
+    model = create_model(input_shape=input_shape, best_hps=best_hps)
+
+    X_val_combined = np.concatenate([client_data[i][2] for i in range(len(client_data))], axis=0)
+    y_true = np.concatenate([client_data[i][3] for i in range(len(client_data))], axis=0)
+
+    print(f"X_val_combined shape: {X_val_combined}")
+    print(f"y_true shape: {y_true}")
+
+    y_pred = model.predict(X_val_combined, verbose=0)
+    y_pred_class = (y_pred >= 0.5).astype(int)
+    print(f"y_pred shape: {y_pred}")
+    y_score = y_pred.flatten()  # For binary classification
+
+    history = pd.read_json("metrics_history.json")
+    print("History DataFrame:", history.head())
+
     # Use binary classification
     classes = ['Normal', 'Attack']
-    client_accuracies = {0: 0.9, 1: 0.85, 2: 0.88, 3: 0.87}
-    training_times = {0: 120, 1: 150, 2: 130, 3: 140}
+
 
     # Generate figures
-    analyze_results(history, y_true, y_pred, y_score, classes)
+    if client_id is None:
+        analyze_results(history, y_true, y_pred_class, y_score, classes)
+        # plot_distribution()
+    else :
+        # plot_metrics(history, client_id)    
+        for client_id in range(4):
+            analyze_results(history, y_true, y_pred, y_score, classes, client_id)
 
-    for client_id in range(4):
-        analyze_results(history, y_true, y_pred, y_score, classes, client_id)
+
     plot_client_data_distribution()
-    plot_client_accuracy_distribution(client_accuracies)
-    plot_training_time_vs_clients(training_times)
+
