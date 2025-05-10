@@ -122,7 +122,7 @@ def tune_hyperparameters():
     tuner.search(
         X_train_combined, y_train_combined,
         epochs=15,  # Increased from 10
-        batch_size=32,  # Added batch_size
+        batch_size=256,  # Added batch_size
         validation_data=(X_val_combined, y_val_combined),
         verbose=1,
         callbacks=[tf.keras.callbacks.EarlyStopping(patience=3)]  # Added early stopping

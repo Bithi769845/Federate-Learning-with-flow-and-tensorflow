@@ -105,6 +105,7 @@ def analyze_results(history: pd.DataFrame, y_true, y_pred, y_score, classes, cli
             plot_all_clients_distribution()
         else:
             # Client-specific metrics
+
             print(f"Generating plots for Client {client_id}...")
             plot_metrics(history, client_id)
             plot_confusion_matrix(y_true, y_pred, ['Normal', 'Attack'], f"confusion_client_{client_id}.png")
@@ -249,34 +250,19 @@ if __name__ == "__main__":
     # Define client_id with an initial value
     client_id = None
 
-    df, num_cols, label_mapping, label_encoders = preprocess_data()
-    client_data, _ = create_non_iid_data(df, num_cols)
+    labels_df = pd.read_csv('fl_labels.csv')
 
-    input_shape = len(num_cols)
-    # print(f"Client {client_id} model input shape: {input_shape}")
-    
-    # Only perform tuning if hyperparameters don't exist
-    # if client_id == 0 and not os.path.exists('best_hyperparameters.json'):
-    #     # print(f"\nTuning hyperparameters (Client {client_id} is primary)...")
-    #     best_hps = tune_hyperparameters()
-    # else:
-        # print(f"\nClient {client_id} loading existing hyperparameters...")
-    best_hps = load_hyperparameters()
-    
-    # print(f"Client {client_id} using hyperparameters:", best_hps)
-
-    model = create_model(input_shape=input_shape, best_hps=best_hps)
-
-    X_val_combined = np.concatenate([client_data[i][2] for i in range(len(client_data))], axis=0)
-    y_true = np.concatenate([client_data[i][3] for i in range(len(client_data))], axis=0)
-
-    print(f"X_val_combined shape: {X_val_combined}")
-    print(f"y_true shape: {y_true}")
-
-    y_pred = model.predict(X_val_combined, verbose=0)
+    y_true = labels_df['true_labels'].values
+    y_pred = labels_df['predicted_labels'].values
+    y_score = labels_df['scores'].values
     y_pred_class = (y_pred >= 0.5).astype(int)
-    print(f"y_pred shape: {y_pred}")
-    y_score = y_pred.flatten()  # For binary classification
+
+
+    print(f"y_pred_class shape: {y_pred_class.shape}")
+    print(f"y_true shape: {y_true.shape}")    
+    print(f"y_pred shape: {y_pred.shape}")
+    print(f"y_score shape: {y_score.shape}")
+
 
     history = pd.read_json("metrics_history.json")
     print("History DataFrame:", history.head())
